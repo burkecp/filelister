@@ -32,6 +32,7 @@ class DataStorage:
     def __getitem__(self, key):
         if isinstance(key, int):
             return self.paths["abs"][key], self.paths["rel"][key]
+
         if isinstance(key, slice):
             start, stop, step = key.indices(self.counter)
             ret_abs = []
@@ -42,6 +43,11 @@ class DataStorage:
                 ret_rel.append(rel_path)
             return ret_abs, ret_rel
         raise TypeError(f"indices must be integers or slices, not {type(key)}")
+
+    def __setitem__(self, key, value):
+
+        self.paths["abs"][key] = value.to_abs()[key]
+        self.paths["rel"][key] = value.to_rel()[key]
 
     def __contains__(self, value):
         return value in self.lookup

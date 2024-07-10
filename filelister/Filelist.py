@@ -119,6 +119,30 @@ class Filelist:
             colored(f"indices must be integers or slices, not {type(idx)}", "red")
         )
 
+    def __setitem__(self, idx, value):
+        if isinstance(idx, slice):
+            try:
+                if len(value) != len(range(*idx.indices(len(value)))):
+                    raise ValueError
+                fl = Filelist(value)
+            except ValueError:
+                raise ValueError(
+                    colored("Input must be the same length as the slice", "red")
+                )
+            except Exception as e:
+                raise TypeError(colored("Invalid input for filelist", "red"))
+        else:
+            if not isinstance(value, str):
+                raise TypeError(
+                    colored(
+                        f"Invalid input: filename must be a string, not {type(value)}",
+                        "red",
+                    )
+                )
+            fl = Filelist([value])
+
+        self._data_storage[idx] = fl
+
     def __contains__(self, filename):
         if not isinstance(filename, str):
             raise TypeError(colored("Invalid input: filename must be a string", "red"))

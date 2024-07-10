@@ -384,3 +384,38 @@ class TestCompression:
         test_path = os.path.join(tmp_dir["flists"], "compressed_rel.zz")
         flist = fs.read_filelist(test_path, compressed=True)
         assert flist.to_list() == data_rel
+
+    def test_setitem(self, tmp_dir, data_abs, data_rel):
+        # test abs path
+        flist = fs.Filelist(data_abs[:2])
+        flist[0] = data_abs[4]
+        assert flist[0] == data_abs[4]
+        flist.to_rel()
+        assert flist[0] == data_rel[4]
+
+        # test rel path
+        flist[0] = data_rel[3]
+        assert flist[0] == data_rel[3]
+        flist.to_abs()
+        assert flist[0] == data_abs[3]
+
+    def test_setitem_slice(self, tmp_dir, data_rel, data_abs):
+        # test abs path
+        flist = fs.Filelist(data_abs[:3])
+        flist[:3] = data_abs[2:]
+        assert flist[:3] == data_abs[2:]
+        flist.to_rel()
+        assert flist[:3] == data_rel[2:]
+
+        # test rel path
+        flist[:3] = data_rel[:3]
+        assert flist[:3] == data_rel[:3]
+        flist.to_abs()
+        assert flist[:3] == data_abs[:3]
+
+    def test_setitem_error(self, tmp_dir, data_rel):
+        flist = fs.Filelist(data_rel)
+        with pytest.raises(
+            TypeError, match=r"Invalid input: filename must be a string"
+        ):
+            flist[0] = 1234

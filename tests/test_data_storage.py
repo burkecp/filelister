@@ -1,7 +1,59 @@
+import os
 from ctypes import c_wchar_p
 
 import filelister as fs
 import pytest
+
+FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "tmp_dir")
+
+
+@pytest.fixture(scope="session")
+def tmp_dir(tmp_path_factory):
+    data_dir = tmp_path_factory.mktemp("data")
+    flist_dir = tmp_path_factory.mktemp("filelists")
+    for i in range(1, 6):
+        with open(str(data_dir) + f"/sample_0{i}.txt", "w") as f:
+            f.write("")
+    with open(os.path.join(flist_dir, "bad_ext.png"), "w") as f:
+        f.write("")
+    return {"data": data_dir, "flists": flist_dir}
+
+
+@pytest.fixture(scope="session")
+def data_rel(tmp_dir):
+    rel_data = [
+        os.path.relpath(os.path.join(tmp_dir["data"], "sample_01.txt")),
+        os.path.relpath(os.path.join(tmp_dir["data"], "sample_02.txt")),
+        os.path.relpath(os.path.join(tmp_dir["data"], "sample_03.txt")),
+        os.path.relpath(os.path.join(tmp_dir["data"], "sample_04.txt")),
+        os.path.relpath(os.path.join(tmp_dir["data"], "sample_05.txt")),
+    ]
+    return [os.path.relpath(path) for path in rel_data]
+
+
+@pytest.fixture(scope="session")
+def data_abs(tmp_dir):
+    return [
+        os.path.abspath(os.path.join(tmp_dir["data"], "sample_01.txt")),
+        os.path.abspath(os.path.join(tmp_dir["data"], "sample_02.txt")),
+        os.path.abspath(os.path.join(tmp_dir["data"], "sample_03.txt")),
+        os.path.abspath(os.path.join(tmp_dir["data"], "sample_04.txt")),
+        os.path.abspath(os.path.join(tmp_dir["data"], "sample_05.txt")),
+    ]
+
+
+@pytest.fixture(scope="session")
+def data_pfx(tmp_dir):
+    return {
+        "rel": os.path.relpath(tmp_dir["data"]),
+        "abs": os.path.abspath(tmp_dir["data"]),
+    }
+
+
+@pytest.fixture(scope="session")
+def data_no_ctx(tmp_dir):
+    return ["sample_data_01.txt", "sample_data_02.txt", "sample_data_03.txt"]
+
 
 test_data = [
     ("/home/christian/dir/filename_00.jpg", "./dir/filename_00.jpg"),
@@ -19,6 +71,11 @@ rel_test_data = [item[1] for item in test_data]
 def generator(data):
     for value in data:
         yield value[0], value[1]
+
+
+def generator_new(abs, rel):
+    for a, r in zip(abs, rel):
+        yield a, r
 
 
 def compare_color(value, color):
@@ -144,3 +201,15 @@ class TestDataStorage:
         storage = fs.DataStorage(generator(test_data))
         for idx, item in enumerate(storage):
             assert item == test_data[idx]
+
+    def test_setitem(self, tmp_dir, data_abs, data_rel):
+        storage = fs.DataStorage(generator(test_data))
+        storage[0] = fs.Filelist([data_abs[0]])
+        assert storage[0][0] == data_abs[0]
+        assert storage[0][1] == data_rel[0]
+
+    def test_setitem_slice(self, tmp_dir, data_abs, data_rel):
+        storage = fs.DataStorage(generator_new(data_abs,data_rel))
+        storage[0] = fs.Filelist(data_abs)
+        assert storage[:][0] == data_abs
+        assert storage[:][1] == data_rel
